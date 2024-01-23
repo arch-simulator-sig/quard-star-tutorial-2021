@@ -55,20 +55,32 @@
  * registers.
  *
  */
+#include "riscv_encoding.h"
+
 #if __riscv_xlen == 64
 	#define portWORD_SIZE 8
 	#define store_x sd
 	#define load_x ld
 #elif __riscv_xlen == 32
+	#define portWORD_SIZE 4
 	#define store_x sw
 	#define load_x lw
-	#define portWORD_SIZE 4
 #else
 	#error Assembler did not define __riscv_xlen
 #endif
 
 /* Only the standard core registers are stored by default. */
-#define portCONTEXT_SIZE ( 30 * portWORD_SIZE )
+#if __riscv_flen == 64
+	#define portCONTEXT_SIZE ( 62 * portWORD_SIZE )
+	#define store_fx fsd
+	#define load_fx fld
+#elif __riscv_xlen == 32
+	#define portCONTEXT_SIZE ( 62 * portWORD_SIZE )
+	#define store_fx fsw
+	#define load_fx flw
+#else
+	#define portCONTEXT_SIZE ( 30 * portWORD_SIZE )
+#endif
 
 .global xPortStartFirstTask
 .global freertos_risc_v_trap_handler
@@ -82,6 +94,7 @@
 .extern pullNextTime
 .extern uxTimerIncrementsForOneTick /* size_t type so 32-bit on 32-bit core and 64-bits on 64-bit core. */
 .extern xISRStackTop
+.extern prvTaskExitError
 
 /*-----------------------------------------------------------*/
 
@@ -117,9 +130,54 @@ freertos_risc_v_trap_handler:
 	store_x x29, 26 * portWORD_SIZE( sp )
 	store_x x30, 27 * portWORD_SIZE( sp )
 	store_x x31, 28 * portWORD_SIZE( sp )
-	
+
 	csrr t0, sstatus					/* Required for SPIE bit. */
 	store_x t0, 29 * portWORD_SIZE( sp )
+
+#ifdef __riscv_flen
+	csrr t2, sstatus
+	li t0, SSTATUS_FS
+	and t1,t2,t0
+	bne t1,t0,1f
+
+	store_fx f0, 30 * portWORD_SIZE( sp )
+	store_fx f1, 31 * portWORD_SIZE( sp )
+	store_fx f2, 32 * portWORD_SIZE( sp )
+	store_fx f3, 33 * portWORD_SIZE( sp )
+	store_fx f4, 34 * portWORD_SIZE( sp )
+	store_fx f5, 35 * portWORD_SIZE( sp )
+	store_fx f6, 36 * portWORD_SIZE( sp )
+	store_fx f7, 37 * portWORD_SIZE( sp )
+	store_fx f8, 38 * portWORD_SIZE( sp )
+	store_fx f9, 39 * portWORD_SIZE( sp )
+	store_fx f10, 40 * portWORD_SIZE( sp )
+	store_fx f11, 41 * portWORD_SIZE( sp )
+	store_fx f12, 42 * portWORD_SIZE( sp )
+	store_fx f13, 43 * portWORD_SIZE( sp )
+	store_fx f14, 44 * portWORD_SIZE( sp )
+	store_fx f15, 45 * portWORD_SIZE( sp )
+	store_fx f16, 46 * portWORD_SIZE( sp )
+	store_fx f17, 47 * portWORD_SIZE( sp )
+	store_fx f18, 48 * portWORD_SIZE( sp )
+	store_fx f19, 49 * portWORD_SIZE( sp )
+	store_fx f20, 50 * portWORD_SIZE( sp )
+	store_fx f21, 51 * portWORD_SIZE( sp )
+	store_fx f22, 52 * portWORD_SIZE( sp )
+	store_fx f23, 53 * portWORD_SIZE( sp )
+	store_fx f24, 54 * portWORD_SIZE( sp )
+	store_fx f25, 55 * portWORD_SIZE( sp )
+	store_fx f26, 56 * portWORD_SIZE( sp )
+	store_fx f27, 57 * portWORD_SIZE( sp )
+	store_fx f28, 58 * portWORD_SIZE( sp )
+	store_fx f29, 59 * portWORD_SIZE( sp )
+	store_fx f30, 60 * portWORD_SIZE( sp )
+	store_fx f31, 61 * portWORD_SIZE( sp )
+1:	
+	li t0, (0x1 << 14)
+	csrs sstatus,t0
+	li t0, (0x1 << 13)
+	csrc sstatus,t0   
+#endif
 
 	csrr t0, sepc
 	store_x t0, 0 * portWORD_SIZE( sp )
@@ -162,47 +220,80 @@ test_if_mtimer:						/* If there is a CLINT then the mtimer is used to generate 
 
 test_if_external_interrupt:			/* If there is a CLINT and the mtimer interrupt is not pending then check to see if an external interrupt is pending. */
 	addi t1, t1, 4					/* 0x80000005 + 4 = 0x80000009 == Supervisor external interrupt. */
-	bne a0, t1, as_yet_unhandled	/* Something as yet unhandled. */
+	bne a0, t1, processed_trap   	/* Something as yet unhandled. */
 
-	load_x sp, xISRStackTop				/* Switch to ISR stack before function call. */
-	jal handle_trap		             	/* Jump to the interrupt handler if there is no CLINT or if there is a CLINT and it has been determined that an external interrupt is pending. */
+	load_x sp, xISRStackTop			/* Switch to ISR stack before function call. */
+	jal handle_interrupt	        /* Jump to the interrupt handler if there is no CLINT or if there is a CLINT and it has been determined that an external interrupt is pending. */
 	j processed_source
 
 handle_synchronous:
-	addi a1, a1, 4						/* Synchronous so updated exception return address to the instruction after the instruction that generated the exeption. */
-	store_x a1, 0( sp )					/* Save updated exception return address. */
+	addi a1, a1, 4					/* Synchronous so updated exception return address to the instruction after the instruction that generated the exeption. */
+	store_x a1, 0( sp )				/* Save updated exception return address. */
 
-test_if_environment_call:
-	li t0, 11 							/* 11 == environment call. */
-	bne a0, t0, is_exception			/* Not an M environment call, so some other exception. */
-	load_x sp, xISRStackTop				/* Switch to ISR stack before function call. */
-	jal vTaskSwitchContext
+processed_trap:
+	csrr a0, scause
+	csrr a1, sepc
+	csrr a2, stval
+	mv   a4, sp
+	load_x sp, xISRStackTop			/* Switch to ISR stack before function call. */
+	jal handle_trap	                /* Jump to the interrupt handler if there is no CLINT or if there is a CLINT and it has been determined that an external interrupt is pending. */
 	j processed_source
 
-is_exception:
-	csrr t0, scause						/* For viewing in the debugger only. */
-	csrr t1, sepc						/* For viewing in the debugger only */
-	csrr t2, sstatus
-	j is_exception						/* No other exceptions handled yet. */
-
-as_yet_unhandled:
-	csrr t0, scause						/* For viewing in the debugger only. */
-	j as_yet_unhandled
-
-handle_trap:
-	j handle_trap
-
 processed_source:
-	load_x  t1, pxCurrentTCB			/* Load pxCurrentTCB. */
-	load_x  sp, 0( t1 )				 	/* Read sp from first TCB member. */
+	load_x  t1, pxCurrentTCB		/* Load pxCurrentTCB. */
+	load_x  sp, 0( t1 )				/* Read sp from first TCB member. */
 
 	/* Load sret with the address of the next instruction in the task to run next. */
 	load_x t0, 0 * portWORD_SIZE( sp )
 	csrw sepc, t0
 
+#ifdef __riscv_flen
+	csrr t2, sstatus
+#endif
+
 	/* Load mstatus with the interrupt enable bits used by the task. */
 	load_x  t0, 29 * portWORD_SIZE( sp )
-	csrw sstatus, t0						/* Required for MPIE bit. */
+	csrw sstatus, t0				/* Required for MPIE bit. */
+
+#ifdef __riscv_flen
+	li t0, SSTATUS_FS
+	and t1,t2,t0
+	bne t1,t0,1f
+
+	load_fx f0, 30 * portWORD_SIZE( sp )
+	load_fx f1, 31 * portWORD_SIZE( sp )
+	load_fx f2, 32 * portWORD_SIZE( sp )
+	load_fx f3, 33 * portWORD_SIZE( sp )
+	load_fx f4, 34 * portWORD_SIZE( sp )
+	load_fx f5, 35 * portWORD_SIZE( sp )
+	load_fx f6, 36 * portWORD_SIZE( sp )
+	load_fx f7, 37 * portWORD_SIZE( sp )
+	load_fx f8, 38 * portWORD_SIZE( sp )
+	load_fx f9, 39 * portWORD_SIZE( sp )
+	load_fx f10, 40 * portWORD_SIZE( sp )
+	load_fx f11, 41 * portWORD_SIZE( sp )
+	load_fx f12, 42 * portWORD_SIZE( sp )
+	load_fx f13, 43 * portWORD_SIZE( sp )
+	load_fx f14, 44 * portWORD_SIZE( sp )
+	load_fx f15, 45 * portWORD_SIZE( sp )
+	load_fx f16, 46 * portWORD_SIZE( sp )
+	load_fx f17, 47 * portWORD_SIZE( sp )
+	load_fx f18, 48 * portWORD_SIZE( sp )
+	load_fx f19, 49 * portWORD_SIZE( sp )
+	load_fx f20, 50 * portWORD_SIZE( sp )
+	load_fx f21, 51 * portWORD_SIZE( sp )
+	load_fx f22, 52 * portWORD_SIZE( sp )
+	load_fx f23, 53 * portWORD_SIZE( sp )
+	load_fx f24, 54 * portWORD_SIZE( sp )
+	load_fx f25, 55 * portWORD_SIZE( sp )
+	load_fx f26, 56 * portWORD_SIZE( sp )
+	load_fx f27, 57 * portWORD_SIZE( sp )
+	load_fx f28, 58 * portWORD_SIZE( sp )
+	load_fx f29, 59 * portWORD_SIZE( sp )
+	load_fx f30, 60 * portWORD_SIZE( sp )
+	load_fx f31, 61 * portWORD_SIZE( sp )
+1:	
+#endif
 
 	load_x  x1, 1 * portWORD_SIZE( sp )
 	load_x  x5, 2 * portWORD_SIZE( sp )		/* t0 */
@@ -239,6 +330,23 @@ processed_source:
 /*-----------------------------------------------------------*/
 
 .align 8
+.weak handle_trap
+.func
+handle_trap:
+	j handle_trap
+	.endfunc
+/*-----------------------------------------------------------*/
+
+.align 8
+.weak handle_interrupt
+.func
+handle_interrupt:
+	j handle_interrupt
+	ret
+	.endfunc
+/*-----------------------------------------------------------*/
+
+.align 8
 .func
 xPortStartFirstTask:
 	/* If there is a clint then interrupts can branch directly to the FreeRTOS
@@ -251,6 +359,41 @@ xPortStartFirstTask:
 	load_x  sp, 0( sp )				 	/* Read sp from first TCB member. */
 
 	load_x  x1, 0( sp ) /* Note for starting the scheduler the exception return address is used as the function return address. */
+
+#ifdef __riscv_flen
+	load_fx f0, 30 * portWORD_SIZE( sp )
+	load_fx f1, 31 * portWORD_SIZE( sp )
+	load_fx f2, 32 * portWORD_SIZE( sp )
+	load_fx f3, 33 * portWORD_SIZE( sp )
+	load_fx f4, 34 * portWORD_SIZE( sp )
+	load_fx f5, 35 * portWORD_SIZE( sp )
+	load_fx f6, 36 * portWORD_SIZE( sp )
+	load_fx f7, 37 * portWORD_SIZE( sp )
+	load_fx f8, 38 * portWORD_SIZE( sp )
+	load_fx f9, 39 * portWORD_SIZE( sp )
+	load_fx f10, 40 * portWORD_SIZE( sp )
+	load_fx f11, 41 * portWORD_SIZE( sp )
+	load_fx f12, 42 * portWORD_SIZE( sp )
+	load_fx f13, 43 * portWORD_SIZE( sp )
+	load_fx f14, 44 * portWORD_SIZE( sp )
+	load_fx f15, 45 * portWORD_SIZE( sp )
+	load_fx f16, 46 * portWORD_SIZE( sp )
+	load_fx f17, 47 * portWORD_SIZE( sp )
+	load_fx f18, 48 * portWORD_SIZE( sp )
+	load_fx f19, 49 * portWORD_SIZE( sp )
+	load_fx f20, 50 * portWORD_SIZE( sp )
+	load_fx f21, 51 * portWORD_SIZE( sp )
+	load_fx f22, 52 * portWORD_SIZE( sp )
+	load_fx f23, 53 * portWORD_SIZE( sp )
+	load_fx f24, 54 * portWORD_SIZE( sp )
+	load_fx f25, 55 * portWORD_SIZE( sp )
+	load_fx f26, 56 * portWORD_SIZE( sp )
+	load_fx f27, 57 * portWORD_SIZE( sp )
+	load_fx f28, 58 * portWORD_SIZE( sp )
+	load_fx f29, 59 * portWORD_SIZE( sp )
+	load_fx f30, 60 * portWORD_SIZE( sp )
+	load_fx f31, 61 * portWORD_SIZE( sp )
+#endif
 
 	load_x  x6, 3 * portWORD_SIZE( sp )		/* t1 */
 	load_x  x7, 4 * portWORD_SIZE( sp )		/* t2 */
@@ -354,21 +497,36 @@ xPortStartFirstTask:
 .align 8
 .func
 pxPortInitialiseStack:
-
-	csrr t0, sstatus					/* Obtain current mstatus value. */
+	csrr t0, sstatus					/* Obtain current sstatus value. */
+	la t1, sstatus_init
+	lw t2, 0(t1)
+	or t0, t0, t2
+#ifdef __riscv_flen
+	lw t2, 4(t1)
+	and t0, t0, t2
+#endif
 	andi t0, t0, ~0x2					/* Ensure interrupts are disabled when the stack is restored within an ISR.  Required when a task is created after the schedulre has been started, otherwise interrupts would be disabled anyway. */
 	addi t1, x0, 0x120					/* Generate the value 0x120, which are the SPIE and SPP bits to set in mstatus. */
-	or t0, t0, t1						/* Set SPIE and SPP bits in mstatus value. */
+	or t0, t0, t1						/* Set SPIE and SPP bits in sstatus value. */
 
+#ifdef __riscv_flen
+	addi a0, a0, -(32 * portWORD_SIZE)	/* Space for registers x11-x31. */
+#endif
 	addi a0, a0, -portWORD_SIZE
-	store_x t0, 0(a0)					/* mstatus onto the stack. */
+	store_x t0, 0(a0)					/* sstatus onto the stack. */
 	addi a0, a0, -(22 * portWORD_SIZE)	/* Space for registers x11-x31. */
 	store_x a2, 0(a0)					/* Task parameters (pvParameters parameter) goes into register X10/a0 on the stack. */
 	addi a0, a0, -(6 * portWORD_SIZE)	/* Space for registers x5-x9. */
-	store_x x0, 0(a0)					/* Return address onto the stack, could be portTASK_RETURN_ADDRESS */
+	la t0, prvTaskExitError
+	store_x t0, 0(a0)					/* Return address onto the stack, could be portTASK_RETURN_ADDRESS */
 
 	addi a0, a0, -portWORD_SIZE
 	store_x a1, 0(a0)					/* mret value (pxCode parameter) onto the stack. */
 	ret
+sstatus_init:
+	.word (~SSTATUS_FS)
+#ifdef __riscv_flen
+	.word (0x1 << 13)
+#endif
 	.endfunc
 /*-----------------------------------------------------------*/
