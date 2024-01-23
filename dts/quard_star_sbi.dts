@@ -48,8 +48,8 @@
 		        possible-harts = <&cpu0 &cpu1 &cpu2 &cpu3 &cpu4 &cpu5 &cpu6>;
 		        regions = <&tmem 0x0>, <&tuart 0x0>, <&allmem 0x7>;
 				boot-hart = <&cpu0>;
-		        next-arg1 = <0x0 0x82200000>;
-		        next-addr = <0x0 0x82000000>;
+		        next-arg1 = <0x0 0x82000000>;
+		        next-addr = <0x0 0x80200000>;
 		        next-mode = <0x1>;
 		        system-reset-allowed;
 		    };
