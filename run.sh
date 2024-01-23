@@ -35,7 +35,7 @@ if [ $# != 2 ] ; then
 else
 	case "$2" in
 	full-screen)
-		DEFAULT_VC="$(xrandr -q 2>/dev/zero | awk '/*/{print $1}')"
+		DEFAULT_VC="$(xrandr -q 2>/dev/null | awk '/*/{print $1}')"
 		FULL_SCREEN=-full-screen
 		;;
 	*)
@@ -89,7 +89,7 @@ $SHELL_FOLDER/output/qemu/bin/qemu-system-riscv64 \
 -smp 8 \
 -drive if=pflash,bus=0,unit=0,format=raw,file=$SHELL_FOLDER/output/fw/fw.bin \
 -drive file=$SHELL_FOLDER/output/rootfs/rootfs.img,format=raw,id=drive0 \
--fsdev local,security_model=mapped-xattr,id=fsdev0,path=$SHELL_FOLDER/target_root_app \
+-fsdev local,security_model=mapped-xattr,id=fsdev0,path=$SHELL_FOLDER \
 -global virtio-mmio.force-legacy=false \
 -device virtio-blk-device,id=hd0,drive=drive0 \
 -device virtio-gpu-device,id=video0,xres=$WIDTH,yres=$HEIGHT \
