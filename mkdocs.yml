@@ -1,0 +1,72 @@
+site_name: Quard Star Tutorial 2021
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: True
+      separator: "_"
+  - admonition
+  - codehilite
+  - footnotes
+  - meta
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+theme: material
+extra_css:
+  - 'stylesheets/extra.css'
+repo_url: "http://rismd.cn/sig/quard-star-tutorial-2021"
+repo_name: "RISMD"
+nav:
+    - 'index.md'
+    - "<b>基于 qemu-riscv 从 0 开始构建嵌入式 linux 系统</b> ": 'sec1.md'
+    - "<b>正文</b>": 'sec1.md'
+    - "&emsp;ch0. 引言": 'ch0.md'
+    - "&emsp;ch1. 搭建qemu环境": 'ch1.md'
+    - "&emsp;ch2. 添加qemu仿真板——Quard-Star板": 'ch2.md'
+    - "&emsp;ch3. 添加中断控制器、串口、pflash支持": 'ch3.md'
+    - "&emsp;ch4. 制作测试固件验证串口打印": 'ch4.md'
+    - "&emsp;ch5. 什么是多级BootLoader与opensbi": 'ch5.md'
+    - "&emsp;&emsp;—— 1.上篇": 'ch5-1.md'
+    - "&emsp;&emsp;—— 2.下篇": 'ch5-2.md'
+    - "&emsp;ch6. 设备树文件与opensbi加载运行": 'ch6.md'
+    - "&emsp;ch7. OpenSBI Domain": 'ch7.md'
+    - "&emsp;ch8. U-Boot": 'ch8.md'
+    - "&emsp;ch9. U-Boot platform添加与内存分配重规划": 'ch9.md'
+    - "&emsp;ch10. qemu之virtio与fw_cfg": 'ch10.md'
+    - "&emsp;ch11. 向着linux kernel出发！": 'ch11.md'
+    - "&emsp;&emsp;—— 1.加载引导": 'ch11-1.md'
+    - "&emsp;&emsp;—— 2.完成启动": 'ch11-2.md'
+    - "&emsp;ch12. busybox": 'ch12.md'
+    - "&emsp;ch13. 最小根文件系统完成": 'ch13.md'
+    - "&emsp;ch14. 动态链接——elf文件的加载": 'ch14.md'
+    - "&emsp;ch15. linux多用户管理": 'ch15.md'
+    - "&emsp;ch16. Framebuffer显示设备": 'ch16.md'
+    - "&emsp;ch17. bash——交叉编译应用": 'ch17.md'
+    - "&emsp;ch18. RTC设备与系统控制设备": 'ch18.md'
+    - "&emsp;ch19. 交叉编译sudo": 'ch19.md'
+    - "&emsp;ch20. 交叉编译screen、tree、cu": 'ch20.md'
+    - "&emsp;ch21. 实时操作系统FreeRTOS移植RISCV-S模式": 'ch21.md'
+    - "&emsp;ch22. 编译器与C/C++标准库": 'ch22.md'
+    - "&emsp;ch23. linux FB应用——Qt库移植": 'ch23.md'
+    - "&emsp;ch24. qemu网卡/linux内核网络配置": 'ch24.md'
+    - "&emsp;ch25. sshd服务配置": 'ch25.md'
+    - "<b>扩展内容</b>": 'sec2.md'
+    - "&emsp;ext1. kgdb调试linux内核以及驱动模块": 'ext1.md'
+    - "&emsp;ext2. gcc编译选项pg在嵌入式profile中应用": 'ext2.md'
+    - "&emsp;ext3. qemu常用参数选项说明": 'ext3.md'
+    - "&emsp;ext4. 使用qemu的gdbstub调试": 'ext4.md'
+    - "&emsp;ext5. QEMU CAN总线": 'ext5.md'
+    - "&emsp;ext6. 嵌入式Linux上ifpulgd的使用配置与qemu模拟验证": 'ext6.md'
