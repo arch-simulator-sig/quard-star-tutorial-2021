@@ -1,0 +1,11 @@
+pages:
+  stage: deploy
+  tags:
+    - gitlab-pages
+  script:
+    - mkdocs build --strict --verbose
+  artifacts: 
+    paths:
+      - public
+  only:
+    - doc
