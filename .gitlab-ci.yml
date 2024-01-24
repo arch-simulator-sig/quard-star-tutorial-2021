@@ -3,7 +3,7 @@ pages:
   tags:
     - gitlab-pages
   script:
-    - mkdocs build --strict --verbose
+    - mkdocs build --strict --verbose --site-dir public
   artifacts: 
     paths:
       - public
