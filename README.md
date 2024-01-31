@@ -1,8 +1,42 @@
 # 基于qemu从0开始构建嵌入式linux系统
+> QuardStar Tutorial 2021 版本冻结
+> 
+
+## 开始之前
+
+
+> 
+> **原教程作者**<br>GitHub：https://github.com/QQxiaoming/quard_star_tutorial<br>Gitee：https://gitee.com/QQxiaoming/quard_star_tutorial
+
+
+&emsp;&emsp;本项目的引导文档已经镜像至 [RISMD 镜像站](http://mirror.rismd.cn/quard-star-tutorial-2021/)，并且根据实际操作中遇到的问题进行了部分的修改。官方仓库已经更新了非常多的新内容，但是教学文档没有跟进，根据旧的教学文档已经不能运行仓库中的实际操作内容，故建议你跟随本仓库与镜像站中的内容进行学习。  
+&emsp;&emsp;本仓库根据教程中的各个单元对版本管理系统进行了重新整理。各个单元、章节依然有其对应的Tag，各个章节的实际操作内容都使用了分支进行管理，而不再像原作者的仓库中使用Releases和代码包的形式。各个分支名称都直接对应了各个章节，并建议你在 ```-dev``` 后缀的仓库中进行实操。  
+&emsp;&emsp;由于本仓库中非常多的分支，为了方便使用，你可以利用 ```git clone``` 的参数来一次性将所有的分支都克隆到本地，以下是克隆流程样例：  
+```shell
+# 创建项目文件夹
+mkdir quard-star-2021 && cd quard-star-2021
+
+# 使用 bare 方式克隆远程仓库
+git clone --bare https://github.com/arch-simulator-sig/quard-star-tutorial-2021.git
+
+# 将仓库克隆到本地 .git 文件夹
+git clone --bare quard-star-tutorial-2021.git .git
+
+# 删除原内容
+rm -rf quard-star-tutorial-2021.git
+
+# 取消仓库的 bare 标记
+git config --unset core.bare
+
+# 更新仓库内容
+git reset --hard
+
+```  
+
 
 ## 引言
 
-本项目旨在真正从0开始构建嵌入式linux系统，为了剖析芯片从上电开始执行第一条指令到整个系统运行，相关应用服务启动，因此不使用市面上真实的板子，基于qemu定制模拟器开发板，且不使用qemu提供的快速加载elf的文件方式，因而我们需要下载qemu-6.0.0源码，自己编写(或使用qemu自带的)硬件ip相关模拟代码定制属于自己的硬件板卡。本项目同步制作[博客专栏](https://blog.csdn.net/weixin_39871788/category_11180842.html)（暂时只发送到本人的博客），因此项目尽量保证每增加一个feature就提交一次，方便索引跟踪开发过程以方便对应到博客的具体章节。
+&emsp;&emsp;本项目旨在真正从0开始构建嵌入式linux系统，为了剖析芯片从上电开始执行第一条指令到整个系统运行，相关应用服务启动，因此不使用市面上真实的板子，基于qemu定制模拟器开发板，且不使用qemu提供的快速加载elf的文件方式，因而我们需要下载qemu-6.0.0源码，自己编写(或使用qemu自带的)硬件ip相关模拟代码定制属于自己的硬件板卡。本项目同步制作[博客专栏](https://blog.csdn.net/weixin_39871788/category_11180842.html)（暂时只发送到本人的博客），因此项目尽量保证每增加一个feature就提交一次，方便索引跟踪开发过程以方便对应到博客的具体章节。
 
 ## 环境搭建
 
