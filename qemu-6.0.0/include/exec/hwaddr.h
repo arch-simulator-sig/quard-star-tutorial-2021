@@ -4,6 +4,7 @@
 #define HWADDR_H
 
 
+#include <bits/stdint-uintn.h>
 #define HWADDR_BITS 64
 /* hwaddr is the type of a physical address (its size can
    be different from 'target_ulong').  */

@@ -1,0 +1,4 @@
+qemu-6.0.0/.cache
+output
+.sv_cache
+.vscode

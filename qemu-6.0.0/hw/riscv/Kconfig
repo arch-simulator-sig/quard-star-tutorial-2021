@@ -39,6 +39,10 @@ config QUARD_STAR
     bool
     select SERIAL
 
+config NANSHAN
+    bool
+    select SERIAL
+
 config SIFIVE_E
     bool
     select MSI_NONBROKEN

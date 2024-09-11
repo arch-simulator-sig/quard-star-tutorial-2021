@@ -47,6 +47,7 @@ int main(int argc, char **argv)
 int main(int argc, char **argv, char **envp)
 {
     qemu_init(argc, argv, envp);
+    printf("qemu_Init finished\n");
     qemu_main_loop();
     qemu_cleanup();
 

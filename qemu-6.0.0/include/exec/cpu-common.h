@@ -3,6 +3,7 @@
 
 /* CPU interfaces that are target independent.  */
 
+
 #ifndef CONFIG_USER_ONLY
 #include "exec/hwaddr.h"
 #endif

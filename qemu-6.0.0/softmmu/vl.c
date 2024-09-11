@@ -91,6 +91,7 @@
 #include "qemu/config-file.h"
 #include "qemu-options.h"
 #include "qemu/main-loop.h"
+#include <stdio.h>
 #ifdef CONFIG_VIRTFS
 #include "fsdev/qemu-fsdev.h"
 #endif
@@ -805,7 +806,7 @@ static MachineClass *find_default_machine(GSList *machines)
 
     for (el = machines; el; el = el->next) {
         MachineClass *mc = el->data;
-
+        printf("mc->name: %s\n", mc->name);
         if (mc->is_default) {
             assert(default_machineclass == NULL && "Multiple default machines");
             default_machineclass = mc;
@@ -2617,6 +2618,7 @@ void qmp_x_exit_preconfig(Error **errp)
 
 void qemu_init(int argc, char **argv, char **envp)
 {
+    printf("get qemu_init\n");
     QemuOpts *opts;
     QemuOpts *icount_opts = NULL, *accel_opts = NULL;
     QemuOptsList *olist;
@@ -2642,7 +2644,9 @@ void qemu_init(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_trace_opts);
     qemu_plugin_add_opts();
     qemu_add_opts(&qemu_option_rom_opts);
+    printf("before qemu opts\n");
     qemu_add_opts(&qemu_machine_opts);
+    printf("after qemu opts\n");
     qemu_add_opts(&qemu_accel_opts);
     qemu_add_opts(&qemu_mem_opts);
     qemu_add_opts(&qemu_smp_opts);
@@ -2662,7 +2666,7 @@ void qemu_init(int argc, char **argv, char **envp)
 
     error_init(argv[0]);
     qemu_init_exec_dir(argv[0]);
-
+    printf("before qemu systems\n");
     qemu_init_subsystems();
 
     /* first pass of option parsing */
@@ -2686,6 +2690,8 @@ void qemu_init(int argc, char **argv, char **envp)
     if (userconfig) {
         qemu_read_default_config_file(&error_fatal);
     }
+
+    printf("after userconfig\n");
 
     /* second pass of option parsing */
     optind = 1;
@@ -3541,9 +3547,9 @@ void qemu_init(int argc, char **argv, char **envp)
     replay_configure(icount_opts);
 
     configure_rtc(qemu_find_opts_singleton("rtc"));
-
+printf("before select machine\n");
     qemu_create_machine(select_machine());
-
+printf("after select machine\n");
     suspend_mux_open();
 
     qemu_disable_default_devices();
